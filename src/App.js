@@ -19,17 +19,53 @@ const useStyles = makeStyles({
 
 function App() {
   const classes = useStyles();
-  
-  let blocks = []
-  
+
+  const [transactions, setTransactions] = useState([]);
+
   useEffect(() => {
-    loadBlocks();
+    loadTransactions();
   });
-  
-  const loadBlocks = async () => {
+
+  const loadTransactions = async () => {
     const web3 = new Web3(process.env.REACT_APP_URL);
-    web3.eth.getBlock(6607985).then((res) => blocks.push(res))
-    console.log(blocks)
+    const birthTopic = web3.utils.sha3(
+      "Birth(address,uint256,uint256,uint256,uint256)"
+    );
+    const address = process.env.REACT_APP_CONTRACT_ADDRESS
+    const resultArr = []
+    
+    for (let i = 6607985; i <= 7028323; i += 20001){
+      console.log(i, resultArr)
+      try {
+         resultArr.push(await web3.eth
+          .getPastLogs({
+            fromBlock: i,
+            toBlock: i + 20000,
+            address: address,
+            topics: [birthTopic],
+          }))
+      } catch(err){
+        if (err.message === 'Returned error: query returned more than 10000 results') {
+          resultArr.push(
+            await web3.eth.getPastLogs({
+              fromBlock: i,
+              toBlock: i + 1000,
+              address: address,
+              topics: [birthTopic],
+            })
+          );
+          i -= 19000
+        }
+      }
+       
+        if (i + 20001 > 7028323) {
+          console.log("last start", (7028323 - (7028323 - i + 1)));
+          
+          break;
+        }
+    }
+    setTransactions(transactions => [...transactions, resultArr])
+        console.log(transactions);
   };
 
   return (
@@ -46,3 +82,6 @@ function App() {
 }
 
 export default App;
+
+/* Need to map over transation logs to find the address
+ */
