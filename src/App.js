@@ -19,127 +19,136 @@ const useStyles = makeStyles({
     width: "200px",
     height: "200px",
     display: "flex",
+    flexFlow: 'column nowrap',
     alignItems: "center",
     justifyContent: "center",
   },
   button: {
-    width: "50%",
+    width: "90%",
     fontSize: "12px",
   },
   progress: {
-    height: '50px',
-    width: '50px',
-    color: 'red'
-  }
+    height: "50px",
+    width: "50px",
+    color: "red",
+  },
 });
 
 function App() {
   const classes = useStyles();
+  const web3 = new Web3(process.env.REACT_APP_URL);
+  const birthTopic = web3.utils.sha3(
+    "Birth(address,uint256,uint256,uint256,uint256)"
+  );
+  const address = process.env.REACT_APP_CONTRACT_ADDRESS;
 
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(false)
+  const [birthData, setBirthData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const loadData = async (startingBlock, endingBlock) => {
-    const web3 = new Web3(process.env.REACT_APP_URL);
-    const birthTopic = web3.utils.sha3(
-      "Birth(address,uint256,uint256,uint256,uint256)"
-    );
-    const address = process.env.REACT_APP_CONTRACT_ADDRESS;
     const resultArr = [];
 
-    for (let i = startingBlock; i <= endingBlock; i += 10001) {
+    for (let i = startingBlock; i <= endingBlock; i++) {
       console.log(i, resultArr.length);
-      if (i + 10001 > endingBlock) {
-        try {
-          await web3.eth
-            .getPastLogs({
-              fromBlock: i,
-              toBlock: endingBlock,
-              address: address,
-              topics: [birthTopic],
-            })
-            .then(async (res) => {
-              for (let j = 0; j < res.length; j++) {
-                resultArr.push(res[j].data)
-              }
-            });
-          console.log("last block success");
-        } catch (err) {
-          if (
-            err.message ===
-            "Returned error: query returned more than 10000 results"
-          ) {
-            console.log("last block err");
-          }
-        }
-        break;
-      }
       try {
         await web3.eth
           .getPastLogs({
             fromBlock: i,
-            toBlock: i + 10000,
+            toBlock: i + 1,
             address: address,
             topics: [birthTopic],
           })
           .then(async (res) => {
-              for (let j = 0; j < res.length; j++) {
-                resultArr.push(res[j].data);
-              }
+            for (let j = 0; j < res.length; j++) {
+              let result = await web3.eth.abi.decodeLog(
+                [
+                  { indexed: false, name: "owner", type: "address" },
+                  { indexed: false, name: "kittyId", type: "uint256" },
+                  { indexed: false, name: "matronId", type: "uint256" },
+                  { indexed: false, name: "sireId", type: "uint256" },
+                  { indexed: false, name: "genes", type: "uint256" },
+                ],
+                res[j].data,
+                [birthTopic]
+              );
+              resultArr.push(result);
+            }
           });
       } catch (err) {
-        if (
-          err.message ===
-          "Returned error: query returned more than 10000 results"
-        ) {
-          await web3.eth
-            .getPastLogs({
-              fromBlock: i,
-              toBlock: i + 1000,
-              address: address,
-              topics: [birthTopic],
-            })
-            .then(async (res) => {
-              for (let j = 0; j < res.length; j++) {
-                resultArr.push(res[j].data);
-              }
-            });
-          i -= 9000;
-        }
+        throw new Error(err);
       }
     }
-    return resultArr
-    // setTransactions((transactions) => [...transactions, resultArr]);
-    // console.log(transactions);
+    setBirthData((birthData) => [...birthData, ...resultArr]);
   };
 
-  const decodeTransactions = () => {
-
-  }
+  const findMostBirths = async () => {
+    const matronIdCount = {};
+    let mostBirthsCount = 0;
+    let mostBirths = null;
+    for (let i = 0; i < birthData.length; i++) {
+      try {
+        if (matronIdCount.hasOwnProperty(birthData[i].matronId)) {
+          matronIdCount[birthData[i].matronId]++;
+        } else {
+          matronIdCount[birthData[i].matronId] = 1;
+        }
+        if (matronIdCount[birthData[i].matronId] > mostBirthsCount) {
+          mostBirthsCount = matronIdCount[birthData[i].matronId];
+          mostBirths = birthData[i].matronId;
+        }
+        console.log(matronIdCount, mostBirthsCount, mostBirths);
+      } catch (err) {
+        throw new Error(err)
+      }
+    }
+  };
 
   return (
     <Container className={classes.container}>
-      <Button
-        className={classes.button}
-        onClick={async (e) => {
-          e.preventDefault();
-          setLoading(true)
-          await loadData(6607985, 7028323);
-          setLoading(false);
-        }}
-      >
-        Load Transactions
-      </Button>
-      {
-        loading === true ? <CircularProgress className={classes.progress}/> : <Card className={classes.card}>
+      <Card className={classes.card}>
         <CardContent>
-          <Typography variant="caption" className="text">
-            Data
-          </Typography>
+          {loading === true ? (
+            <CircularProgress className={classes.progress} />
+          ) : (
+            <Typography variant="caption" className="text">
+              Data
+            </Typography>
+          )}
         </CardContent>
+        <Button
+          className={classes.button}
+          onClick={async (e) => {
+            e.preventDefault();
+            setLoading(true);
+            await loadData(6607985, 6608085);
+            setLoading(false);
+          }}
+        >
+          Load Data
+        </Button>
       </Card>
-      }
-
+      <Card className={classes.card}>
+        <CardContent>
+          {loading === true ? (
+            <CircularProgress className={classes.progress} />
+          ) : (
+            <Typography variant="caption" className="text">
+              Data
+            </Typography>
+            )}
+                  </CardContent>
+          <Button
+            className={classes.button}
+            onClick={async (e) => {
+              e.preventDefault();
+              setLoading(true);
+              await findMostBirths();
+              setLoading(false);
+            }}
+          >
+            Find Most Births
+          </Button>
+      </Card>
     </Container>
   );
 }
