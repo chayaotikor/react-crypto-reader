@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import Web3 from "web3";
-import abi from "./abi";
 import { makeStyles } from "@material-ui/core/styles";
 import Container from "@material-ui/core/Container";
 import Card from "@material-ui/core/Card";
@@ -17,20 +15,21 @@ const useStyles = makeStyles({
   container: {
     border: "1px solid red",
     display: "flex",
+    flexFlow: "column wrap",
     alignItems: "center",
     justifyContent: "center",
   },
   card: {
     backgroundColor: "pink",
-    width: "200px",
-    height: "200px",
+    width: "100px",
+    height: "100px",
     display: "flex",
     flexFlow: "column nowrap",
     alignItems: "center",
     justifyContent: "center",
   },
   button: {
-    width: "90%",
+    width: "50%",
     fontSize: "12px",
   },
   progress: {
@@ -39,13 +38,22 @@ const useStyles = makeStyles({
     color: "red",
   },
   image: {
-    height: 0,
+    height: "50px",
+    width: "50px",
     paddingTop: "56.25%", // 16:9
   },
 });
 
 function KittyList(props) {
-  const { web3, birthTopic, address, loading, birthData, setBirthData } = props;
+  const {
+    web3,
+    birthTopic,
+    address,
+    loading,
+    birthData,
+    setBirthData,
+    setLoading,
+  } = props;
   const classes = useStyles();
   const [startingBlock, setStartingBlock] = useState(null);
   const [endingBlock, setEndingBlock] = useState(null);
@@ -53,11 +61,12 @@ function KittyList(props) {
   const loadList = async (startingBlock, endingBlock) => {
     const resultArr = [];
     for (let i = startingBlock; i <= endingBlock; i++) {
+      console.log(i, resultArr.length);
       try {
         await web3.eth
           .getPastLogs({
             fromBlock: i,
-            toBlock: i + 1,
+            toBlock: i,
             address: address,
             topics: [birthTopic],
           })
@@ -89,22 +98,27 @@ function KittyList(props) {
       {loading === true ? (
         <CircularProgress className={classes.progress} />
       ) : (
-        birthData.map((kitty) => {
-          <Card className={classes.card}>
-            <CardContent>
-              <CardMedia
-                src={`https://img.cryptokitties.co/0x06012c8cf97bead5deae237070f9587f8e7a266d/${kitty.id}.svg`}
-              />
-            </CardContent>
-          </Card>;
-        })
+        birthData.map(
+          (kitty) => (
+            console.log(kitty),
+            (
+              <Card className={classes.card} key={kitty.kittyId}>
+                <CardMedia
+                  image={`https://img.cryptokitties.co/0x06012c8cf97bead5deae237070f9587f8e7a266d/${kitty.kittyId}.svg`}
+                  className={classes.image}
+                />
+                <Typography variant='caption'>ID: {kitty.kittyId}</Typography>
+              </Card>
+            )
+          )
+        )
       )}
       <Button
         className={classes.button}
         onClick={async (e) => {
           e.preventDefault();
           setLoading(true);
-          await loadList(6607985, 66078085);
+          await loadList(6607985, 6607995);
           setLoading(false);
         }}
       >
@@ -114,4 +128,4 @@ function KittyList(props) {
   );
 }
 
-export default App;
+export default KittyList;

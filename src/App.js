@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from "react";
 import Web3 from "web3";
 import abi from './abi'
+import KittyList from './components/KittyList'
 import { makeStyles } from "@material-ui/core/styles";
-import Container from "@material-ui/core/Container";
-import Card from "@material-ui/core/Card";
-import CardContent from "@material-ui/core/CardContent";
-import Typography from "@material-ui/core/Typography";
-import { Button, CardMedia, CircularProgress, LinearProgress } from "@material-ui/core";
+import {Route} from 'react-router-dom'
+import {
+  Container,
+  Card,
+  CardContent,
+  Button,
+  CardMedia,
+  CircularProgress,
+  Typography,
+} from "@material-ui/core";
+
 
 const useStyles = makeStyles({
   container: {
@@ -52,40 +59,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [mostBirths, setMostBirths] = useState({id:null})
 
-  const loadData = async (startingBlock, endingBlock) => {
-    const resultArr = [];
 
-    for (let i = startingBlock; i <= endingBlock; i++) {
-      try {
-        await web3.eth
-          .getPastLogs({
-            fromBlock: i,
-            toBlock: i + 1,
-            address: address,
-            topics: [birthTopic],
-          })
-          .then(async (res) => {
-            for (let j = 0; j < res.length; j++) {
-              let result = await web3.eth.abi.decodeLog(
-                [
-                  { indexed: false, name: "owner", type: "address" },
-                  { indexed: false, name: "kittyId", type: "uint256" },
-                  { indexed: false, name: "matronId", type: "uint256" },
-                  { indexed: false, name: "sireId", type: "uint256" },
-                  { indexed: false, name: "genes", type: "uint256" },
-                ],
-                res[j].data,
-                [birthTopic]
-              );
-              resultArr.push(result);
-            }
-          });
-      } catch (err) {
-        throw new Error(err);
-      }
-    }
-    setBirthData((birthData) => [...birthData, ...resultArr]);
-  };
 
   const findMostBirths = async () => {
     const matronIdCount = {};
@@ -112,19 +86,23 @@ function App() {
   };
 
   return (
-    
     <Container className={classes.container}>
-
+      <Route
+        exact
+        path="/"
+        render={(props) => (
+          <KittyList setLoading={setLoading} birthData={birthData} web3={web3} birthTopic={birthTopic} address={address} loading={loading} setBirthData={setBirthData} />
+        )}
+      />
       <Card className={classes.card}>
         <CardContent>
           {loading === true ? (
             <CircularProgress className={classes.progress} />
           ) : (
             <CardMedia
-                src={`https://img.cryptokitties.co/0x06012c8cf97bead5deae237070f9587f8e7a266d/${mostBirths.id}.svg`}
-                className={classes.image}
-            >
-            </CardMedia>
+              src={`https://img.cryptokitties.co/0x06012c8cf97bead5deae237070f9587f8e7a266d/${mostBirths.id}.svg`}
+              className={classes.image}
+            ></CardMedia>
           )}
         </CardContent>
         <Button
