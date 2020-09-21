@@ -123,9 +123,11 @@ const useStyles = makeStyles({
 });
 
 function App() {
+  /* MATERIAL UI VARIABLES */
   const classes = useStyles();
+  const [loadCount, setLoadCount] = useState(0)
 
-  /* WEB3 Constants */
+  /* WEB3 CONSTANTS */
   const web3 = new Web3(process.env.REACT_APP_URL);
   const birthTopic = web3.utils.sha3(
     "Birth(address,uint256,uint256,uint256,uint256)"
@@ -135,6 +137,7 @@ function App() {
 
   /* STATE */
   const [birthData, setBirthData] = useState([]);
+  const [encodedData, setEncodedData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [mostBirths, setMostBirths] = useState({ id: null });
   const [errorMessage, setErrorMessage] = useState("");
@@ -148,8 +151,8 @@ function App() {
 
   /* METHODS */
   const loadList = async (startingBlock, endingBlock) => {
-    const resultArr = [];
-    const decodedArr = [];
+    startingBlock = Number(startingBlock);
+    endingBlock = Number(endingBlock);
     if (!startingBlock || !endingBlock) {
       if (!startingBlock) {
         setErrorInput1(true);
@@ -161,42 +164,60 @@ function App() {
         setHelper2("Block number needed.");
         setErrorMessage("Block number needed.");
       }
+    } else if (endingBlock < startingBlock) {
+      setErrorInput1(true);
+      setErrorInput2(true);
+      setHelper1("Starting block must be less than ending block.");
+      setHelper2("Starting block must be less than ending block.");
     } else {
-      for (let i = startingBlock; i <= endingBlock; i++) {
-        try {
-          await web3.eth
-            .getPastLogs({
-              fromBlock: i,
-              toBlock: i,
-              address: address,
+      const resultArr = [];
+      const runCount = Math.ceil((endingBlock - startingBlock) / 1000);
+      const loadCountAmount = runCount/100
+      try {
+        for (let i = 0; i < runCount; i++) {
+          setLoadCount(loadCount => loadCount+=loadCountAmount)
+          if (endingBlock - startingBlock < 1000) {
+            const result = await contract.getPastEvents({
+              event: "Birth",
+              fromBlock: startingBlock,
+              toBlock: endingBlock,
               topics: [birthTopic],
-            })
-            .then(async (res) => {
-              resultArr.push(...res);
             });
-        } catch (err) {
-          throw new Error(err);
+            resultArr.push(...result);
+          } else {
+            if (i === runCount - 1) {
+              const result = await contract.getPastEvents({
+                event: "Birth",
+                fromBlock: startingBlock + i * 1000,
+                toBlock: endingBlock,
+                topics: [birthTopic],
+              });
+              resultArr.push(...result);
+            } else {
+              const result = await contract.getPastEvents({
+                event: "Birth",
+                fromBlock: startingBlock + i * 1000,
+                toBlock: startingBlock + ((i + 1) * 1000 - 1),
+                topics: [birthTopic],
+              });
+              resultArr.push(...result);
+            }
+          }
+        }
+        setBirthData([...resultArr]);
+
+      } catch (error) {
+        if (
+          error.message ===
+          "Returned error: query returned more than 10000 results"
+        ) {
+          console.log(error.message);
+        } else {
+          throw new Error(error);
         }
       }
-            console.log(resultArr);
-      for (let j = 0; j < resultArr.length; j++) {
-        let result = web3.eth.abi.decodeLog(
-          [
-            { indexed: false, name: "owner", type: "address" },
-            { indexed: false, name: "kittyId", type: "uint256" },
-            { indexed: false, name: "matronId", type: "uint256" },
-            { indexed: false, name: "sireId", type: "uint256" },
-            { indexed: false, name: "genes", type: "uint256" },
-          ],
-          resultArr[j].data,
-          [birthTopic]
-        );
-        decodedArr.push(result);
-      }
-
+      setLoadCount(0)
     }
-
-    setBirthData([...decodedArr]);
   };
 
   const findMostBirths = async () => {
@@ -205,22 +226,25 @@ function App() {
     let mostBirthsId = null;
     for (let i = 0; i < birthData.length; i++) {
       try {
-        if (matronIdCount.hasOwnProperty(birthData[i].matronId)) {
-          matronIdCount[birthData[i].matronId]++;
+        if (matronIdCount.hasOwnProperty(birthData[i].returnValues.matronId)) {
+          matronIdCount[birthData[i].returnValues.matronId]++;
         } else {
-          matronIdCount[birthData[i].matronId] = 1;
+          matronIdCount[birthData[i].returnValues.matronId] = 1;
         }
-        if (matronIdCount[birthData[i].matronId] >= mostBirthsCount) {
-          mostBirthsCount = matronIdCount[birthData[i].matronId];
-          mostBirthsId = birthData[i].matronId;
+        if (
+          matronIdCount[birthData[i].returnValues.matronId] >=
+            mostBirthsCount &&
+          birthData[i].returnValues.matronId !== "0"
+        ) {
+          mostBirthsCount = matronIdCount[birthData[i].returnValues.matronId];
+          mostBirthsId = birthData[i].returnValues.matronId;
         }
       } catch (err) {
         throw new Error(err);
       }
     }
-
     let result = await contract.methods.getKitty(mostBirthsId).call();
-    console.log(result.genes)
+    console.log(result.genes, mostBirthsCount, mostBirthsId);
     setMostBirths({ id: mostBirthsId, ...result });
   };
 
@@ -259,28 +283,31 @@ function App() {
             <Typography variant="caption" className={classes.idText}>
               Searching for Kitties...
             </Typography>
-            <CircularProgress className={classes.progress} />
+            <CircularProgress className={classes.progress} variant='static' value={loadCount}/>
           </Grid>
         ) : (
-          birthData.map((kitty) => (
-            <Card className={classes.card} key={kitty.kittyId}>
-              <CardMedia
-                image={`https://img.cryptokitties.co/0x06012c8cf97bead5deae237070f9587f8e7a266d/${kitty.kittyId}.svg`}
-                className={classes.image}
-              />
-              <Link
-                to={{
-                  pathname: `https://www.cryptokitties.co/kitty/${kitty.kittyId}`,
-                }}
-                target="_blank"
-                style={{ textDecoration: "underline" }}
-              >
-                <Typography variant="caption" className={classes.idText}>
-                  ID: {kitty.kittyId}
-                </Typography>
-              </Link>
-            </Card>
-          ))
+            birthData.map((kitty, index) => {
+              
+            return (
+              <Card className={classes.card} key={kitty.returnValues.kittyId}>
+                <Link
+                  to={{
+                    pathname: `https://www.cryptokitties.co/kitty/${kitty.returnValues.kittyId}`,
+                  }}
+                  target="_blank"
+                  style={{ textDecoration: "underline" }}
+                >
+                  <CardMedia
+                    image={`https://img.cryptokitties.co/0x06012c8cf97bead5deae237070f9587f8e7a266d/${kitty.returnValues.kittyId}.svg`}
+                    className={classes.image}
+                  />
+                  <Typography variant="caption" className={classes.idText}>
+                    ID: {kitty.returnValues.kittyId}
+                  </Typography>
+                </Link>
+              </Card>
+            );
+          })
         )}
       </Grid>
       <Grid className={classes.bottomContainer}>
@@ -335,6 +362,8 @@ function App() {
             className={classes.button}
             onClick={async (e) => {
               e.preventDefault();
+              setBirthData([])
+              setMostBirths({})
               setToggleMother(false);
               setLoading(true);
               await loadList(startingBlock, endingBlock);
