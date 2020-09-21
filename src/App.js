@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Web3 from "web3";
-import abi from './abi'
+import abi from "./abi";
 import { makeStyles } from "@material-ui/core/styles";
-import {Link} from 'react-router-dom'
+import { Link } from "react-router-dom";
 import moment from "moment";
 import {
   Container,
@@ -15,9 +15,6 @@ import {
   FormControl,
   TextField,
 } from "@material-ui/core";
-
-
-
 
 const useStyles = makeStyles({
   container: {
@@ -76,14 +73,14 @@ const useStyles = makeStyles({
     margin: "5px 0",
     justifyContent: "flex-start",
     backgroundColor: "#52154E",
-    overflowY: 'scroll'
+    overflowY: "scroll",
   },
   buttonContainer: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '80%',
-    padding: '5px'
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "80%",
+    padding: "5px",
   },
   button: {
     width: "45%",
@@ -152,6 +149,7 @@ function App() {
   /* METHODS */
   const loadList = async (startingBlock, endingBlock) => {
     const resultArr = [];
+    const decodedArr = [];
     if (!startingBlock || !endingBlock) {
       if (!startingBlock) {
         setErrorInput1(true);
@@ -174,34 +172,37 @@ function App() {
               topics: [birthTopic],
             })
             .then(async (res) => {
-              for (let j = 0; j < res.length; j++) {
-                let result = await web3.eth.abi.decodeLog(
-                  [
-                    { indexed: false, name: "owner", type: "address" },
-                    { indexed: false, name: "kittyId", type: "uint256" },
-                    { indexed: false, name: "matronId", type: "uint256" },
-                    { indexed: false, name: "sireId", type: "uint256" },
-                    { indexed: false, name: "genes", type: "uint256" },
-                  ],
-                  res[j].data,
-                  [birthTopic]
-                );
-                resultArr.push(result);
-              }
+              resultArr.push(...res);
             });
         } catch (err) {
           throw new Error(err);
         }
       }
+            console.log(resultArr);
+      for (let j = 0; j < resultArr.length; j++) {
+        let result = web3.eth.abi.decodeLog(
+          [
+            { indexed: false, name: "owner", type: "address" },
+            { indexed: false, name: "kittyId", type: "uint256" },
+            { indexed: false, name: "matronId", type: "uint256" },
+            { indexed: false, name: "sireId", type: "uint256" },
+            { indexed: false, name: "genes", type: "uint256" },
+          ],
+          resultArr[j].data,
+          [birthTopic]
+        );
+        decodedArr.push(result);
+      }
+
     }
 
-    setBirthData([...resultArr]);
+    setBirthData([...decodedArr]);
   };
 
   const findMostBirths = async () => {
     const matronIdCount = {};
     let mostBirthsCount = 0;
-    let mostBirths = null;
+    let mostBirthsId = null;
     for (let i = 0; i < birthData.length; i++) {
       try {
         if (matronIdCount.hasOwnProperty(birthData[i].matronId)) {
@@ -211,14 +212,16 @@ function App() {
         }
         if (matronIdCount[birthData[i].matronId] >= mostBirthsCount) {
           mostBirthsCount = matronIdCount[birthData[i].matronId];
-          mostBirths = birthData[i].matronId;
+          mostBirthsId = birthData[i].matronId;
         }
       } catch (err) {
         throw new Error(err);
       }
     }
-    let result = await contract.methods.getKitty(mostBirths).call();
-    setMostBirths({ id: mostBirths, ...result });
+
+    let result = await contract.methods.getKitty(mostBirthsId).call();
+    console.log(result.genes)
+    setMostBirths({ id: mostBirthsId, ...result });
   };
 
   const handleChange = (e) => {
@@ -402,6 +405,5 @@ function App() {
     </Container>
   );
 }
-
 
 export default App;
