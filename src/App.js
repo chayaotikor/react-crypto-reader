@@ -17,10 +17,12 @@ import {
 
 const useStyles = makeStyles({
   container: {
-    border: "1px solid red",
     display: "flex",
+    flexFlow: "column nowrap",
     alignItems: "center",
     justifyContent: "center",
+    height: "100vh",
+    backgroundColor: "#EFE9E7",
   },
   card: {
     backgroundColor: "pink",
@@ -38,7 +40,7 @@ const useStyles = makeStyles({
   progress: {
     height: "50px",
     width: "50px",
-    color: "red",
+    color: "#111344",
   },
   image: {
     height: 0,
@@ -94,7 +96,7 @@ function App() {
           <KittyList setLoading={setLoading} birthData={birthData} web3={web3} birthTopic={birthTopic} address={address} loading={loading} setBirthData={setBirthData} />
         )}
       />
-      <Card className={classes.card}>
+      {/* <Card className={classes.card}>
         <CardContent>
           {loading === true ? (
             <CircularProgress className={classes.progress} />
@@ -116,7 +118,7 @@ function App() {
         >
           Find Most Births
         </Button>
-      </Card>
+      </Card> */}
     </Container>
   );
 }
