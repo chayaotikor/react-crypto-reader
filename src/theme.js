@@ -1,12 +1,5 @@
 import { createMuiTheme } from "@material-ui/core/styles";
 
-//REFRESHR Colors
-
-//Background: #0b2742
-//Background Contrast Text: #FFFFFF
-//Cards: #FFFFFF
-//Card Contrast Text:#0b2742
-
 //breakpoint values {xs: 0, sm: 600, md: 960, lg: 1280, xl: 1920}
 
 export default createMuiTheme({
@@ -26,8 +19,8 @@ export default createMuiTheme({
       contrastText: "#FFFFFF",
     },
     background: {
-      default: "#FFFFFF",
-      paper: "#FFFFFF",
+      default: "#52154e",
+      paper: "#52154e",
     },
     tonalOffset: 0.2,
   },

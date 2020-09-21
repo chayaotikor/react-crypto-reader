@@ -17,14 +17,12 @@ import {
 
 const useStyles = makeStyles({
   container: {
-    border: "1px solid #52154e",
     display: "flex",
     flexFlow: "column nowrap",
     alignItems: "center",
     justifyContent: "space-between",
     width: "100vw",
     backgroundColor: "#f9cff2",
-
     padding: 0,
     height: "100vh",
   },
@@ -35,7 +33,6 @@ const useStyles = makeStyles({
     borderBottom: "1px solid #52154e",
     height: "40%",
     width: "100%",
-
     overflowY: "scroll",
   },
   bottomContainer: {
@@ -45,7 +42,6 @@ const useStyles = makeStyles({
     alignItems: "center",
     height: "60%",
     width: "100%",
-    overflowY: "scroll",
   },
   progressContainer: {
     display: "flex",
