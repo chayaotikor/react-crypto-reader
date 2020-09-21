@@ -1,14 +1,17 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
+import React from "react";
+import ReactDOM from "react-dom";
 import CssBaseline from "@material-ui/core/CssBaseline";
 import { ThemeProvider } from "@material-ui/core/styles";
-import App from './App';
-import theme from './theme'
+import { BrowserRouter as Router } from "react-router-dom";
+import App from "./App";
+import theme from "./theme";
 
 ReactDOM.render(
-<ThemeProvider theme={theme}>
+  <ThemeProvider theme={theme}>
     <CssBaseline />
-    <App />
+    <Router>
+      <App />
+    </Router>
   </ThemeProvider>,
-  document.getElementById('root')
+  document.getElementById("root")
 );
