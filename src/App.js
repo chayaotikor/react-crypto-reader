@@ -10,7 +10,7 @@ import {
   Typography,
   Button,
   CardMedia,
-  CircularProgress,
+  CircularProgress ,
   FormControl,
   TextField,
 } from "@material-ui/core";
@@ -136,6 +136,8 @@ function App() {
   /* STATE */
   const [birthData, setBirthData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [motherLoading, setMotherLoading] = useState(false);
+  const [loadProgess, setLoadProgress] = useState(0);
   const [mostBirths, setMostBirths] = useState({ id: null });
   const [startingBlock, setStartingBlock] = useState("");
   const [endingBlock, setEndingBlock] = useState("");
@@ -166,9 +168,10 @@ function App() {
     } else {
       const resultArr = [];
       const runCount = Math.ceil((endingBlock - startingBlock) / 1000);
+      const loadIncrementer = runCount/100
       try {
         for (let i = 0; i < runCount; i++) {
-          console.log(i)
+          setLoadProgress(loadProgess => loadProgess += (1/loadIncrementer))
           if (endingBlock - startingBlock < 1000) {
             const result = await contract.getPastEvents({
               event: "Birth",
@@ -220,7 +223,9 @@ function App() {
     const matronIdCount = {};
     let mostBirthsCount = 0;
     let mostBirthsId = null;
+    let loadIncrementer = birthData.length/100
     for (let i = 0; i < birthData.length; i++) {
+      setLoadProgress((loadProgess) => (loadProgess += 1 / loadIncrementer));
       try {
         if (matronIdCount.hasOwnProperty(birthData[i].returnValues.matronId)) {
           matronIdCount[birthData[i].returnValues.matronId]++;
@@ -274,36 +279,43 @@ function App() {
         Total Kitties Born: {birthData.length}
       </Typography>
       <Grid container className={classes.cardContainer}>
-        {loading === true ? (
-          <Grid item className={classes.progressContainer}>
-            <Typography variant="caption" className={classes.idText}>
-              Searching for kitties...
-            </Typography>
-            <CircularProgress className={classes.progress}/>
-          </Grid>
-        ) : (
-            birthData.map((kitty) => {
-            return (
-              <Card className={classes.card} key={kitty.returnValues.kittyId}>
-                <Link
-                  to={{
-                    pathname: `https://www.cryptokitties.co/kitty/${kitty.returnValues.kittyId}`,
-                  }}
-                  target="_blank"
-                  style={{ textDecoration: "underline" }}
-                >
-                  <CardMedia
-                    image={`https://img.cryptokitties.co/0x06012c8cf97bead5deae237070f9587f8e7a266d/${kitty.returnValues.kittyId}.svg`}
-                    className={classes.image}
-                  />
-                  <Typography variant="caption" className={classes.idText}>
-                    ID: {kitty.returnValues.kittyId}
-                  </Typography>
-                </Link>
-              </Card>
-            );
-          })
-        )}
+        {
+          loading === true ? (
+            <Grid item className={classes.progressContainer}>
+              <Typography variant="caption" className={classes.idText}>
+                Searching for kitties...
+              </Typography>
+              <CircularProgress
+                className={classes.progress}
+                variant="static"
+                value={loadProgess}
+              />
+            </Grid>
+          ) : null
+          /* Visual Representation of each kitty for small datasets */
+
+          //   birthData.map((kitty) => {
+          //   return (
+          //     <Card className={classes.card} key={kitty.returnValues.kittyId}>
+          //       <Link
+          //         to={{
+          //           pathname: `https://www.cryptokitties.co/kitty/${kitty.returnValues.kittyId}`,
+          //         }}
+          //         target="_blank"
+          //         style={{ textDecoration: "underline" }}
+          //       >
+          //         {<CardMedia
+          //           image={`https://img.cryptokitties.co/0x06012c8cf97bead5deae237070f9587f8e7a266d/${kitty.returnValues.kittyId}.svg`}
+          //           className={classes.image}
+          //         />}
+          //         <Typography variant="caption" className={classes.idText}>
+          //           ID: {kitty.returnValues.kittyId}
+          //         </Typography>
+          //       </Link>
+          //     </Card>
+          //   );
+          // })
+        }
       </Grid>
       <Grid className={classes.bottomContainer}>
         <FormControl className={classes.form}>
@@ -357,12 +369,12 @@ function App() {
             className={classes.button}
             onClick={async (e) => {
               e.preventDefault();
-              setBirthData([])
-              setMostBirths({})
-              setToggleMother(false);
+              setBirthData([]);
+              setMostBirths({});
               setLoading(true);
               await loadList(startingBlock, endingBlock);
               setLoading(false);
+              setLoadProgress(0);
               setStartingBlock("");
               setEndingBlock("");
             }}
@@ -375,19 +387,26 @@ function App() {
               onClick={async (e) => {
                 e.preventDefault();
                 setToggleMother(true);
+                setMotherLoading(true);
                 await findMostBirths();
+                setMotherLoading(false);
+                setLoadProgress(0);
               }}
             >
               Find Momma Kitty
             </Button>
           )}
         </Grid>
-        {toggleMother === false ? null : mostBirths.id === null ? (
+        {toggleMother === false ? null : motherLoading === true ? (
           <Grid item className={classes.progressContainer}>
             <Typography variant="caption" className={classes.idText}>
               Calculating Momma Kitty...
             </Typography>
-            <CircularProgress className={classes.progress} />
+            <CircularProgress
+              className={classes.progress}
+              variant="static"
+              value={loadProgess}
+            />
           </Grid>
         ) : (
           <Card className={classes.bigCard}>
