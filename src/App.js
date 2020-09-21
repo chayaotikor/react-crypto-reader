@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Web3 from "web3";
 import abi from "./abi";
 import { makeStyles } from "@material-ui/core/styles";
 import { Link } from "react-router-dom";
-import moment from "moment";
 import {
   Container,
   Grid,
@@ -125,7 +124,6 @@ const useStyles = makeStyles({
 function App() {
   /* MATERIAL UI VARIABLES */
   const classes = useStyles();
-  const [loadCount, setLoadCount] = useState(0)
 
   /* WEB3 CONSTANTS */
   const web3 = new Web3(process.env.REACT_APP_URL);
@@ -137,10 +135,8 @@ function App() {
 
   /* STATE */
   const [birthData, setBirthData] = useState([]);
-  const [encodedData, setEncodedData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [mostBirths, setMostBirths] = useState({ id: null });
-  const [errorMessage, setErrorMessage] = useState("");
   const [startingBlock, setStartingBlock] = useState("");
   const [endingBlock, setEndingBlock] = useState("");
   const [errorInput1, setErrorInput1] = useState(false);
@@ -157,12 +153,10 @@ function App() {
       if (!startingBlock) {
         setErrorInput1(true);
         setHelper1("Block number needed.");
-        setErrorMessage("Block number needed.");
       }
       if (!endingBlock) {
         setErrorInput2(true);
         setHelper2("Block number needed.");
-        setErrorMessage("Block number needed.");
       }
     } else if (endingBlock < startingBlock) {
       setErrorInput1(true);
@@ -172,10 +166,9 @@ function App() {
     } else {
       const resultArr = [];
       const runCount = Math.ceil((endingBlock - startingBlock) / 1000);
-      const loadCountAmount = runCount/100
       try {
         for (let i = 0; i < runCount; i++) {
-          setLoadCount(loadCount => loadCount+=loadCountAmount)
+          console.log(i)
           if (endingBlock - startingBlock < 1000) {
             const result = await contract.getPastEvents({
               event: "Birth",
@@ -211,12 +204,15 @@ function App() {
           error.message ===
           "Returned error: query returned more than 10000 results"
         ) {
-          console.log(error.message);
+          setErrorInput2(true);
+          setHelper2("Result limit reached. Please choose a lower ending block.");
+
+          
         } else {
           throw new Error(error);
         }
       }
-      setLoadCount(0)
+
     }
   };
 
@@ -281,13 +277,12 @@ function App() {
         {loading === true ? (
           <Grid item className={classes.progressContainer}>
             <Typography variant="caption" className={classes.idText}>
-              Searching for Kitties...
+              Searching for kitties...
             </Typography>
-            <CircularProgress className={classes.progress} variant='static' value={loadCount}/>
+            <CircularProgress className={classes.progress}/>
           </Grid>
         ) : (
-            birthData.map((kitty, index) => {
-              
+            birthData.map((kitty) => {
             return (
               <Card className={classes.card} key={kitty.returnValues.kittyId}>
                 <Link
