@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import Web3 from "web3";
+import abi from './abi'
 import { makeStyles } from "@material-ui/core/styles";
 import Container from "@material-ui/core/Container";
 import Card from "@material-ui/core/Card";
 import CardContent from "@material-ui/core/CardContent";
 import Typography from "@material-ui/core/Typography";
-import { Button, CircularProgress, LinearProgress } from "@material-ui/core";
+import { Button, CardMedia, CircularProgress, LinearProgress } from "@material-ui/core";
 
 const useStyles = makeStyles({
   container: {
@@ -19,7 +20,7 @@ const useStyles = makeStyles({
     width: "200px",
     height: "200px",
     display: "flex",
-    flexFlow: 'column nowrap',
+    flexFlow: "column nowrap",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -32,6 +33,10 @@ const useStyles = makeStyles({
     width: "50px",
     color: "red",
   },
+  image: {
+    height: 0,
+    paddingTop: "56.25%", // 16:9
+  },
 });
 
 function App() {
@@ -41,15 +46,16 @@ function App() {
     "Birth(address,uint256,uint256,uint256,uint256)"
   );
   const address = process.env.REACT_APP_CONTRACT_ADDRESS;
+  let contract = new web3.eth.Contract(abi, address)
 
   const [birthData, setBirthData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [mostBirths, setMostBirths] = useState({id:null})
 
   const loadData = async (startingBlock, endingBlock) => {
     const resultArr = [];
 
     for (let i = startingBlock; i <= endingBlock; i++) {
-      console.log(i, resultArr.length);
       try {
         await web3.eth
           .getPastLogs({
@@ -96,23 +102,29 @@ function App() {
           mostBirthsCount = matronIdCount[birthData[i].matronId];
           mostBirths = birthData[i].matronId;
         }
-        console.log(matronIdCount, mostBirthsCount, mostBirths);
       } catch (err) {
         throw new Error(err)
       }
     }
+    console.log(mostBirths)
+    let result = await contract.methods.getKitty(mostBirths).call();
+    setMostBirths({ id: mostBirths, ...result })
   };
 
   return (
+    
     <Container className={classes.container}>
+
       <Card className={classes.card}>
         <CardContent>
           {loading === true ? (
             <CircularProgress className={classes.progress} />
           ) : (
-            <Typography variant="caption" className="text">
-              Data
-            </Typography>
+            <CardMedia
+                src={`https://img.cryptokitties.co/0x06012c8cf97bead5deae237070f9587f8e7a266d/${mostBirths.id}.svg`}
+                className={classes.image}
+            >
+            </CardMedia>
           )}
         </CardContent>
         <Button
@@ -120,34 +132,12 @@ function App() {
           onClick={async (e) => {
             e.preventDefault();
             setLoading(true);
-            await loadData(6607985, 6608085);
+            await findMostBirths();
             setLoading(false);
           }}
         >
-          Load Data
+          Find Most Births
         </Button>
-      </Card>
-      <Card className={classes.card}>
-        <CardContent>
-          {loading === true ? (
-            <CircularProgress className={classes.progress} />
-          ) : (
-            <Typography variant="caption" className="text">
-              Data
-            </Typography>
-            )}
-                  </CardContent>
-          <Button
-            className={classes.button}
-            onClick={async (e) => {
-              e.preventDefault();
-              setLoading(true);
-              await findMostBirths();
-              setLoading(false);
-            }}
-          >
-            Find Most Births
-          </Button>
       </Card>
     </Container>
   );
